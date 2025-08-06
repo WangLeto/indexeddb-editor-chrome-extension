@@ -1,0 +1,404 @@
+/* IndexedDB Editor 覆盖层样式 */
+#indexeddb-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2147483647;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  display: none;
+  --idb-editor-code-font: Menlo, Monaco, "Cascadia Mono", Consolas,
+    "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "JetBrains Mono",
+    "Fira Code", Cousine, "Roboto Mono", "Courier New", Courier, sans-serif,
+    system-ui;
+  color: #000;
+}
+
+#indexeddb-editor-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70vw;
+  height: 90vh;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#indexeddb-editor-header {
+  background: #4285f4;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#indexeddb-editor-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0;
+}
+
+#indexeddb-editor-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+#indexeddb-editor-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#indexeddb-editor-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+#indexeddb-editor-sidebar {
+  width: 300px;
+  background: #f5f5f5;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+}
+
+#indexeddb-editor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#indexeddb-editor-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.indexeddb-view {
+  display: none; /* 默认隐藏 */
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+#indexeddb-records-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+#indexeddb-editor-records-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: none;
+  flex-direction: column;
+}
+
+#indexeddb-editor-record-detail {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: none;
+  flex-direction: column;
+}
+
+/* 搜索栏样式 */
+#indexeddb-search-container {
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+  background: #f9f9f9;
+}
+
+#indexeddb-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+#indexeddb-search-input:focus {
+  outline: none;
+  border-color: #4285f4;
+}
+
+/* 记录列表样式 */
+.indexeddb-records-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.indexeddb-records-table th {
+  background: #f5f5f5;
+  padding: 8px;
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+  font-weight: bold;
+  color: #555;
+}
+
+.indexeddb-records-table td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+
+.indexeddb-records-table tr:hover {
+  background: #f9f9f9;
+}
+
+.indexeddb-records-table tr.selected {
+  background: #e3f2fd;
+}
+
+.indexeddb-record-key {
+  font-family: var(--idb-editor-code-font);
+  font-weight: bold;
+  color: #2196f3;
+  cursor: pointer;
+}
+
+.indexeddb-record-type {
+  color: #666;
+  font-style: italic;
+}
+
+.indexeddb-record-preview {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--idb-editor-code-font);
+  color: #333;
+}
+
+.indexeddb-record-size {
+  color: #666;
+  font-size: 11px;
+}
+
+/* 记录详情样式 */
+.indexeddb-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.indexeddb-detail-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.indexeddb-detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.indexeddb-detail-content {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  overflow: auto;
+  font-family: var(--idb-editor-code-font);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 300px;
+  padding: 0;
+  display: flex;
+}
+
+.indexeddb-detail-content pre,
+.indexeddb-detail-content code {
+  margin: 0;
+  padding: 0;
+  background: none; /* Remove highlight.js default background */
+  border-radius: 0;
+}
+
+/* 工具栏样式 */
+.indexeddb-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+}
+
+.indexeddb-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.indexeddb-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indexeddb-count {
+  color: #666;
+  font-size: 12px;
+}
+
+.indexeddb-btn.small {
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+/* 侧边栏样式 */
+.indexeddb-section {
+  border-bottom: 1px solid #ddd;
+}
+
+.indexeddb-section-title {
+  background: #e8e8e8;
+  padding: 10px 15px;
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.indexeddb-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.indexeddb-item {
+  padding: 8px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+}
+
+.indexeddb-item:hover {
+  background: #e3f2fd;
+}
+
+.indexeddb-item.selected {
+  background: #2196f3;
+  color: white;
+}
+
+.indexeddb-btn {
+  background: #4285f4;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  margin-left: 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.indexeddb-btn:hover {
+  background: #3367d6;
+}
+
+.indexeddb-btn.danger {
+  background: #d93025;
+}
+
+.indexeddb-btn.danger:hover {
+  background: #b52d20;
+}
+
+#indexeddb-editor-edit-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toast通知样式 */
+#indexeddb-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.indexeddb-toast {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
+}
+
+.indexeddb-toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+#indexeddb-editor-edit-panel {
+  background: white;
+  width: 600px;
+  height: 500px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#indexeddb-editor-edit-header {
+  background: #f5f5f5;
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+  font-weight: bold;
+}
+
+#indexeddb-editor-textarea {
+  flex: 1;
+  border: none;
+  padding: 15px;
+  font-family: var(--idb-editor-code-font);
+  font-size: 12px;
+  resize: none;
+  outline: none;
+}
+
+#indexeddb-editor-edit-actions {
+  padding: 15px;
+  text-align: right;
+  border-top: 1px solid #ddd;
+  background: #f9f9f9;
+}
