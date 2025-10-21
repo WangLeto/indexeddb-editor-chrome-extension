@@ -213,8 +213,8 @@
 
     async show() {
       this.overlay.style.display = "block";
-      this.showToast("Loading databases...");
       await this.loadDatabases();
+      return Promise.resolve();
     }
 
     hide() {
@@ -341,26 +341,31 @@
     }
 
     async selectDatabase(dbName) {
-      try {
-        this.currentDB = dbName;
-        this.clearSelection("indexeddb-databases");
-        this.selectItem("indexeddb-databases", dbName);
+      return new Promise((resolve, reject) => {
+        try {
+          this.currentDB = dbName;
+          this.clearSelection("indexeddb-databases");
+          this.selectItem("indexeddb-databases", dbName);
 
-        const request = indexedDB.open(dbName);
-        request.onsuccess = () => {
-          const db = request.result;
-          const stores = Array.from(db.objectStoreNames);
-          this.renderStores(stores);
-          db.close();
-          this.showToast(`Selected database: ${dbName}`);
-        };
+          const request = indexedDB.open(dbName);
+          request.onsuccess = () => {
+            const db = request.result;
+            const stores = Array.from(db.objectStoreNames);
+            this.renderStores(stores);
+            db.close();
+            this.showToast(`Selected database: ${dbName}`);
+            resolve();
+          };
 
-        request.onerror = () => {
-          this.showToast("Error opening database: " + request.error.message);
-        };
-      } catch (error) {
-        this.showToast("Error selecting database: " + error.message);
-      }
+          request.onerror = () => {
+            this.showToast("Error opening database: " + request.error.message);
+            reject(request.error);
+          };
+        } catch (error) {
+          this.showToast("Error selecting database: " + error.message);
+          reject(error);
+        }
+      });
     }
 
     renderStores(stores) {
@@ -377,61 +382,67 @@
     }
 
     async selectStore(storeName) {
-      try {
-        this.currentStore = storeName;
-        this.clearSelection("indexeddb-stores");
-        this.selectItem("indexeddb-stores", storeName);
+      return new Promise((resolve, reject) => {
+        try {
+          this.currentStore = storeName;
+          this.clearSelection("indexeddb-stores");
+          this.selectItem("indexeddb-stores", storeName);
 
-        const request = indexedDB.open(this.currentDB);
-        request.onsuccess = () => {
-          const db = request.result;
-          const transaction = db.transaction([storeName], "readonly");
-          const store = transaction.objectStore(storeName);
-          const records = [];
+          const request = indexedDB.open(this.currentDB);
+          request.onsuccess = () => {
+            const db = request.result;
+            const transaction = db.transaction([storeName], "readonly");
+            const store = transaction.objectStore(storeName);
+            const records = [];
 
-          this.currentKeyPath = store.keyPath;
+            this.currentKeyPath = store.keyPath;
 
-          // 使用游标来获取所有记录和主键
-          const cursorRequest = store.openCursor();
-          cursorRequest.onsuccess = (event) => {
-            const cursor = event.target.result;
-            if (cursor) {
-              records.push({
-                primaryKey: cursor.primaryKey,
-                key: cursor.key,
-                data: cursor.value,
-                type: this.getDataType(cursor.value),
-                size: this.getDataSize(cursor.value),
-              });
-              cursor.continue();
-            } else {
-              // 游标遍历完成
-              this.records = records;
-              this.filteredRecords = [...this.records];
-              this.renderRecordsList();
-              this.showRecordsList();
+            // 使用游标来获取所有记录和主键
+            const cursorRequest = store.openCursor();
+            cursorRequest.onsuccess = (event) => {
+              const cursor = event.target.result;
+              if (cursor) {
+                records.push({
+                  primaryKey: cursor.primaryKey,
+                  key: cursor.key,
+                  data: cursor.value,
+                  type: this.getDataType(cursor.value),
+                  size: this.getDataSize(cursor.value),
+                });
+                cursor.continue();
+              } else {
+                // 游标遍历完成
+                this.records = records;
+                this.filteredRecords = [...this.records];
+                this.renderRecordsList();
+                this.showRecordsList();
+                db.close();
+                this.showToast(
+                  `Loaded ${this.records.length} records from ${storeName}`
+                );
+                resolve();
+              }
+            };
+
+            cursorRequest.onerror = () => {
               db.close();
               this.showToast(
-                `Loaded ${this.records.length} records from ${storeName}`
+                "Error loading records with cursor: " +
+                  cursorRequest.error.message
               );
-            }
+              reject(cursorRequest.error);
+            };
           };
 
-          cursorRequest.onerror = () => {
-            db.close();
-            this.showToast(
-              "Error loading records with cursor: " +
-                cursorRequest.error.message
-            );
+          request.onerror = () => {
+            this.showToast("Error opening database: " + request.error.message);
+            reject(request.error);
           };
-        };
-
-        request.onerror = () => {
-          this.showToast("Error opening database: " + request.error.message);
-        };
-      } catch (error) {
-        this.showToast("Error selecting store: " + error.message);
-      }
+        } catch (error) {
+          this.showToast("Error selecting store: " + error.message);
+          reject(error);
+        }
+      });
     }
 
     getDataType(data) {
@@ -656,10 +667,126 @@
         item.classList.add("selected");
       }
     }
+
+    // 自动打开deepseek-chat数据库并尝试访问history-message对象存储
+    async autoOpenDeepSeekChat(uuid) {
+      try {
+        // 首先加载所有数据库
+        await this.loadDatabases();
+
+        // 查找deepseek-chat数据库
+        const deepseekDb = this.databases.find(db =>
+          db.name.toLowerCase().includes('deepseek') ||
+          db.name.toLowerCase().includes('chat')
+        );
+
+        if (!deepseekDb) {
+          this.showToast('deepseek-chat database not found');
+          return;
+        }
+
+        // 选择deepseek-chat数据库并等待完成
+        await this.selectDatabase(deepseekDb.name);
+
+        // 等待对象存储列表渲染完成
+        await new Promise(resolve => {
+          const checkStores = () => {
+            const storesContainer = document.getElementById('indexeddb-stores');
+            if (storesContainer && storesContainer.children.length > 0) {
+              resolve();
+            } else {
+              setTimeout(checkStores, 50);
+            }
+          };
+          checkStores();
+        });
+
+        // 查找history-message对象存储
+        const storesContainer = document.getElementById('indexeddb-stores');
+        const historyMessageStore = Array.from(storesContainer.querySelectorAll('.indexeddb-item'))
+          .find(item => item.dataset.storeName.toLowerCase().includes('history') ||
+                       item.dataset.storeName.toLowerCase().includes('message'));
+
+        if (historyMessageStore) {
+          // 选择history-message对象存储并等待记录加载完成
+          await this.selectStore(historyMessageStore.dataset.storeName);
+
+          // 搜索UUID对应的记录
+          await this.searchForUUID(uuid);
+        } else {
+          this.showToast('history-message object store not found');
+        }
+
+      } catch (error) {
+        this.showToast('Error auto-opening deepseek-chat: ' + error.message);
+      }
+    }
+
+    // 搜索UUID对应的记录
+    async searchForUUID(uuid) {
+      const searchInput = document.getElementById('indexeddb-search-input');
+      if (searchInput) {
+        searchInput.value = uuid;
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // 等待过滤完成
+        await new Promise(resolve => {
+          const checkFiltered = () => {
+            if (this.filteredRecords.length > 0 || this.filteredRecords.length === 0) {
+              resolve();
+            } else {
+              setTimeout(checkFiltered, 50);
+            }
+          };
+          checkFiltered();
+        });
+
+        const filteredRecords = this.filteredRecords;
+        if (filteredRecords.length > 0) {
+          // 尝试找到精确匹配UUID的记录
+          const exactMatch = filteredRecords.find(record =>
+            String(record.key).toLowerCase() === uuid.toLowerCase()
+          );
+
+          if (exactMatch) {
+            this.viewRecord(exactMatch);
+            this.showToast(`Found record: ${uuid}`);
+          } else if (filteredRecords.length === 1) {
+            // 如果只有一个匹配结果，自动选择它
+            this.viewRecord(filteredRecords[0]);
+          }
+        }
+      }
+    }
   }
 
   // 全局编辑器实例
   let editorInstance = null;
+
+  // 检查URL并自动打开deepseek-chat数据库
+  function checkUrlAndOpenDatabase() {
+    const url = window.location.href;
+    const pathname = window.location.pathname;
+
+    // 检查URL是否符合 /a/chat/s/uuid 模式
+    const uuidPattern = /\/a\/chat\/s\/([a-f0-9-]+)/i;
+    const match = pathname.match(uuidPattern);
+
+    if (match) {
+      const uuid = match[1];
+      console.log('Detected chat URL with UUID:', uuid);
+
+      // 自动打开编辑器并尝试访问deepseek-chat数据库
+      if (!editorInstance) {
+        editorInstance = new IndexedDBEditor();
+      }
+
+      editorInstance.show().then(() => {
+        // 尝试自动打开deepseek-chat数据库和history-message对象存储
+        editorInstance.autoOpenDeepSeekChat(uuid);
+      });
+    }
+  }
 
   // 监听来自后台脚本的消息
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -671,7 +798,8 @@
       if (editorInstance.isVisible()) {
         editorInstance.hide();
       } else {
-        editorInstance.show();
+        // 点击图标时检查URL并尝试自动打开deepseek-chat
+        checkUrlAndOpenDatabase();
       }
     }
   });

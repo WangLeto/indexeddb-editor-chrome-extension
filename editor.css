@@ -341,27 +341,29 @@
   justify-content: center;
 }
 
-/* Toast通知样式 */
+/* Toast通知样式 - 简洁版 */
 #indexeddb-toast-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 10px;
+  right: 10px;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
 }
 
 .indexeddb-toast {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
-  padding: 12px 18px;
-  border-radius: 6px;
-  font-size: 13px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   opacity: 0;
   transform: translateX(100%);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  max-width: 250px;
+  word-wrap: break-word;
 }
 
 .indexeddb-toast.show {
