@@ -304,6 +304,7 @@
       try {
         if (!window.indexedDB) {
           this.showToast("IndexedDB not supported in this browser");
+          this.renderDatabases(); // 清空数据库列表
           return;
         }
 
@@ -311,6 +312,7 @@
           this.showToast(
             "Cannot enumerate databases (limited browser support)"
           );
+          this.renderDatabases(); // 清空数据库列表
           return;
         }
 
@@ -324,6 +326,7 @@
         }
       } catch (error) {
         this.showToast("Error loading databases: " + error.message);
+        this.renderDatabases(); // 清空数据库列表
       }
     }
 
@@ -768,24 +771,27 @@
     const url = window.location.href;
     const pathname = window.location.pathname;
 
-    // 检查URL是否符合 /a/chat/s/uuid 模式
-    const uuidPattern = /\/a\/chat\/s\/([a-f0-9-]+)/i;
-    const match = pathname.match(uuidPattern);
+    // 自动打开编辑器
+    if (!editorInstance) {
+      editorInstance = new IndexedDBEditor();
+    }
 
-    if (match) {
-      const uuid = match[1];
-      console.log('Detected chat URL with UUID:', uuid);
+    editorInstance.show().then(() => {
+      // 检查URL是否符合 /a/chat/s/uuid 模式
+      const uuidPattern = /\/a\/chat\/s\/([a-f0-9-]+)/i;
+      const match = pathname.match(uuidPattern);
 
-      // 自动打开编辑器并尝试访问deepseek-chat数据库
-      if (!editorInstance) {
-        editorInstance = new IndexedDBEditor();
-      }
-
-      editorInstance.show().then(() => {
+      if (match) {
+        const uuid = match[1];
+        console.log('Detected chat URL with UUID:', uuid);
+        
         // 尝试自动打开deepseek-chat数据库和history-message对象存储
         editorInstance.autoOpenDeepSeekChat(uuid);
-      });
-    }
+      } else {
+        console.log('URL does not match chat pattern, showing general IndexedDB editor');
+        // 对于其他URL，只显示通用的IndexedDB编辑器界面
+      }
+    });
   }
 
   // 监听来自后台脚本的消息
@@ -798,7 +804,8 @@
       if (editorInstance.isVisible()) {
         editorInstance.hide();
       } else {
-        // 点击图标时检查URL并尝试自动打开deepseek-chat
+        // 点击图标时检查URL并打开编辑器
+        // 这将显示通用的IndexedDB编辑器，如果是特定URL还会自动打开相关数据库
         checkUrlAndOpenDatabase();
       }
     }

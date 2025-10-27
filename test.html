@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndexedDB Test Page</title>
+</head>
+<body>
+    <h1>IndexedDB Editor Extension Test Page</h1>
+    <p>This page creates a test IndexedDB database for testing the extension.</p>
+    
+    <button onclick="createTestDatabase()">Create Test Database</button>
+    <button onclick="addTestRecords()">Add Test Records</button>
+    <button onclick="clearDatabase()">Clear Database</button>
+    
+    <div id="status"></div>
+
+    <script>
+        let db;
+        const DB_NAME = 'test-database';
+        const STORE_NAME = 'test-store';
+
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = `<p>${new Date().toLocaleTimeString()}: ${message}</p>`;
+        }
+
+        function createTestDatabase() {
+            const request = indexedDB.open(DB_NAME, 1);
+            
+            request.onerror = function(event) {
+                updateStatus('Error creating database: ' + event.target.errorCode);
+            };
+            
+            request.onsuccess = function(event) {
+                db = event.target.result;
+                updateStatus('Database created successfully!');
+            };
+            
+            request.onupgradeneeded = function(event) {
+                db = event.target.result;
+                
+                // Create object store if it doesn't exist
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                    objectStore.createIndex('name', 'name', { unique: false });
+                    objectStore.createIndex('email', 'email', { unique: true });
+                }
+                
+                updateStatus('Database setup complete!');
+            };
+        }
+
+        function addTestRecords() {
+            if (!db) {
+                updateStatus('Please create database first!');
+                return;
+            }
+
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const objectStore = transaction.objectStore(STORE_NAME);
+            
+            const testData = [
+                { name: 'John Doe', email: 'john@example.com', age: 30, city: 'New York' },
+                { name: 'Jane Smith', email: 'jane@example.com', age: 25, city: 'Los Angeles' },
+                { name: 'Bob Johnson', email: 'bob@example.com', age: 35, city: 'Chicago' },
+                { name: 'Alice Brown', email: 'alice@example.com', age: 28, city: 'Houston' }
+            ];
+
+            let addedCount = 0;
+            
+            testData.forEach(function(person) {
+                const request = objectStore.add(person);
+                request.onsuccess = function() {
+                    addedCount++;
+                    if (addedCount === testData.length) {
+                        updateStatus(`Successfully added ${addedCount} test records!`);
+                    }
+                };
+                request.onerror = function() {
+                    updateStatus('Error adding record: ' + request.error.message);
+                };
+            });
+        }
+
+        function clearDatabase() {
+            if (!db) {
+                updateStatus('Please create database first!');
+                return;
+            }
+
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const objectStore = transaction.objectStore(STORE_NAME);
+            const request = objectStore.clear();
+            
+            request.onsuccess = function() {
+                updateStatus('Database cleared successfully!');
+            };
+            
+            request.onerror = function() {
+                updateStatus('Error clearing database: ' + request.error.message);
+            };
+        }
+
+        // Auto-create database on page load
+        window.onload = function() {
+            updateStatus('Page loaded. Click "Create Test Database" to get started.');
+        };
+    </script>
+</body>
+</html>
