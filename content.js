@@ -96,8 +96,11 @@
             <div id="indexeddb-editor-edit-panel">
               <div id="indexeddb-editor-edit-header">Edit Record</div>
               <textarea id="indexeddb-editor-textarea" placeholder="Edit JSON data here..."></textarea>
+              <input type="file" id="indexeddb-import-file-input" style="display: none;" accept=".json,text/plain">
               <div id="indexeddb-editor-edit-actions">
                 <button class="indexeddb-btn" id="indexeddb-save-btn">Save</button>
+                <button class="indexeddb-btn" id="indexeddb-download-btn">Download</button>
+                <button class="indexeddb-btn" id="indexeddb-import-btn">Import</button>
                 <button class="indexeddb-btn danger" id="indexeddb-delete-btn">Delete</button>
                 <button class="indexeddb-btn" id="indexeddb-cancel-btn">Cancel</button>
               </div>
@@ -189,6 +192,24 @@
         .getElementById("indexeddb-save-btn")
         .addEventListener("click", () => {
           this.saveRecord();
+        });
+
+      document
+        .getElementById("indexeddb-download-btn")
+        .addEventListener("click", () => {
+          this.downloadRecord();
+        });
+
+      document
+        .getElementById("indexeddb-import-btn")
+        .addEventListener("click", () => {
+          document.getElementById("indexeddb-import-file-input").click();
+        });
+
+      document
+        .getElementById("indexeddb-import-file-input")
+        .addEventListener("change", (e) => {
+          this.importRecord(e);
         });
 
       document
@@ -617,6 +638,65 @@
           this.showToast("Error: " + error.message);
         }
       }
+    }
+
+    downloadRecord() {
+      if (!this.editingRecord) return;
+
+      try {
+        const jsonText = document.getElementById(
+          "indexeddb-editor-textarea"
+        ).value;
+        // Validate JSON format before downloading
+        JSON.parse(jsonText);
+
+        const blob = new Blob([jsonText], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const key = this.editingRecord.key ? this.editingRecord.key : "new_record";
+        a.download = `record_${key}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast("Record downloaded.");
+      } catch (error) {
+        if (error.message.includes("JSON")) {
+          this.showToast("Invalid JSON format. Cannot download.");
+        } else {
+          this.showToast("Error: " + error.message);
+        }
+      }
+    }
+
+    importRecord(event) {
+      const file = event.target.files[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        try {
+          // Validate and prettify the JSON
+          const data = JSON.parse(text);
+          const prettifiedText = JSON.stringify(data, null, 2);
+          document.getElementById("indexeddb-editor-textarea").value = prettifiedText;
+          this.showToast("File content imported successfully.");
+        } catch (error) {
+          this.showToast("Invalid JSON file.");
+        } finally {
+          // Reset the file input so the user can select the same file again
+          event.target.value = "";
+        }
+      };
+      reader.onerror = () => {
+        this.showToast("Error reading file.");
+        event.target.value = "";
+      };
+      reader.readAsText(file);
     }
 
     async deleteRecord() {
