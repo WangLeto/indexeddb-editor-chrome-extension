@@ -73,12 +73,12 @@
                 <!-- 记录详情视图 -->
                 <div id="indexeddb-editor-record-detail" class="indexeddb-view">
                   <div class="indexeddb-detail-header">
-                    <div class="indexeddb-detail-title" id="indexeddb-detail-title">Record Details</div>
-                    <div class="indexeddb-detail-actions">
-                      <button class="indexeddb-btn small" id="indexeddb-back-btn">← Back to List</button>
-                      <button class="indexeddb-btn small" id="indexeddb-edit-btn">Edit</button>
-                      <button class="indexeddb-btn small danger" id="indexeddb-detail-delete-btn">Delete</button>
-                    </div>
+                  <div class="indexeddb-detail-actions">
+                    <button class="indexeddb-btn small" id="indexeddb-back-btn">← Back to List</button>
+                    <button class="indexeddb-btn small" id="indexeddb-edit-btn">Edit</button>
+                    <button class="indexeddb-btn small danger" id="indexeddb-detail-delete-btn">Delete</button>
+                  </div>
+                  <div class="indexeddb-detail-title" id="indexeddb-detail-title">Record Details</div>
                   </div>
                   <div class="indexeddb-detail-content" id="indexeddb-detail-content">
                     <pre><code class="language-json"></code></pre>
@@ -346,6 +346,7 @@
           this.showToast(`Found ${this.databases.length} database(s)`);
         }
       } catch (error) {
+        console.error(error);
         this.showToast("Error loading databases: " + error.message);
         this.renderDatabases(); // 清空数据库列表
       }
@@ -386,6 +387,7 @@
             reject(request.error);
           };
         } catch (error) {
+          console.error(error);
           this.showToast("Error selecting database: " + error.message);
           reject(error);
         }
@@ -463,6 +465,7 @@
             reject(request.error);
           };
         } catch (error) {
+          console.error(error);
           this.showToast("Error selecting store: " + error.message);
           reject(error);
         }
@@ -479,6 +482,7 @@
       try {
         return JSON.stringify(data).length + " bytes";
       } catch (e) {
+        console.error(e);
         return "unknown";
       }
     }
@@ -632,6 +636,7 @@
           this.showToast("Error opening database: " + request.error.message);
         };
       } catch (error) {
+        console.error(error);
         if (error.message.includes("JSON")) {
           this.showToast("Invalid JSON format");
         } else {
@@ -654,7 +659,9 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const key = this.editingRecord.key ? this.editingRecord.key : "new_record";
+        const key = this.editingRecord.key
+          ? this.editingRecord.key
+          : "new_record";
         a.download = `record_${key}.json`;
         document.body.appendChild(a);
         a.click();
@@ -662,6 +669,7 @@
         URL.revokeObjectURL(url);
         this.showToast("Record downloaded.");
       } catch (error) {
+        console.error(error);
         if (error.message.includes("JSON")) {
           this.showToast("Invalid JSON format. Cannot download.");
         } else {
@@ -676,16 +684,34 @@
         return;
       }
 
+      const modifyVersionAndFixData = (data) => {
+        const jsonText = document.getElementById(
+          "indexeddb-editor-textarea"
+        ).value;
+        const curJSON = JSON.parse(jsonText);
+        const curVersion = curJSON.data.chat_session.version;
+        if ("data" in data && "chat_session" in data.data) {
+          curJSON.data = data.data;
+        } else if ("chat_session" in data) {
+          curJSON.data = data;
+        }
+        curJSON.data.chat_session.version = curVersion;
+        return curJSON;
+      };
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target.result;
         try {
           // Validate and prettify the JSON
-          const data = JSON.parse(text);
+          const rawData = JSON.parse(text);
+          const data = modifyVersionAndFixData(rawData);
           const prettifiedText = JSON.stringify(data, null, 2);
-          document.getElementById("indexeddb-editor-textarea").value = prettifiedText;
+          document.getElementById("indexeddb-editor-textarea").value =
+            prettifiedText;
           this.showToast("File content imported successfully.");
         } catch (error) {
+          console.error(error);
           this.showToast("Invalid JSON file.");
         } finally {
           // Reset the file input so the user can select the same file again
@@ -730,6 +756,7 @@
           };
         };
       } catch (error) {
+        console.error(error);
         this.showToast("Error: " + error.message);
       }
     }
@@ -758,13 +785,14 @@
         await this.loadDatabases();
 
         // 查找deepseek-chat数据库
-        const deepseekDb = this.databases.find(db =>
-          db.name.toLowerCase().includes('deepseek') ||
-          db.name.toLowerCase().includes('chat')
+        const deepseekDb = this.databases.find(
+          (db) =>
+            db.name.toLowerCase().includes("deepseek") ||
+            db.name.toLowerCase().includes("chat")
         );
 
         if (!deepseekDb) {
-          this.showToast('deepseek-chat database not found');
+          this.showToast("deepseek-chat database not found");
           return;
         }
 
@@ -772,9 +800,9 @@
         await this.selectDatabase(deepseekDb.name);
 
         // 等待对象存储列表渲染完成
-        await new Promise(resolve => {
+        await new Promise((resolve) => {
           const checkStores = () => {
-            const storesContainer = document.getElementById('indexeddb-stores');
+            const storesContainer = document.getElementById("indexeddb-stores");
             if (storesContainer && storesContainer.children.length > 0) {
               resolve();
             } else {
@@ -785,10 +813,14 @@
         });
 
         // 查找history-message对象存储
-        const storesContainer = document.getElementById('indexeddb-stores');
-        const historyMessageStore = Array.from(storesContainer.querySelectorAll('.indexeddb-item'))
-          .find(item => item.dataset.storeName.toLowerCase().includes('history') ||
-                       item.dataset.storeName.toLowerCase().includes('message'));
+        const storesContainer = document.getElementById("indexeddb-stores");
+        const historyMessageStore = Array.from(
+          storesContainer.querySelectorAll(".indexeddb-item")
+        ).find(
+          (item) =>
+            item.dataset.storeName.toLowerCase().includes("history") ||
+            item.dataset.storeName.toLowerCase().includes("message")
+        );
 
         if (historyMessageStore) {
           // 选择history-message对象存储并等待记录加载完成
@@ -797,25 +829,28 @@
           // 搜索UUID对应的记录
           await this.searchForUUID(uuid);
         } else {
-          this.showToast('history-message object store not found');
+          this.showToast("history-message object store not found");
         }
-
       } catch (error) {
-        this.showToast('Error auto-opening deepseek-chat: ' + error.message);
+        console.error(error);
+        this.showToast("Error auto-opening deepseek-chat: " + error.message);
       }
     }
 
     // 搜索UUID对应的记录
     async searchForUUID(uuid) {
-      const searchInput = document.getElementById('indexeddb-search-input');
+      const searchInput = document.getElementById("indexeddb-search-input");
       if (searchInput) {
         searchInput.value = uuid;
-        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        searchInput.dispatchEvent(new Event("input", { bubbles: true }));
 
         // 等待过滤完成
-        await new Promise(resolve => {
+        await new Promise((resolve) => {
           const checkFiltered = () => {
-            if (this.filteredRecords.length > 0 || this.filteredRecords.length === 0) {
+            if (
+              this.filteredRecords.length > 0 ||
+              this.filteredRecords.length === 0
+            ) {
               resolve();
             } else {
               setTimeout(checkFiltered, 50);
@@ -827,8 +862,8 @@
         const filteredRecords = this.filteredRecords;
         if (filteredRecords.length > 0) {
           // 尝试找到精确匹配UUID的记录
-          const exactMatch = filteredRecords.find(record =>
-            String(record.key).toLowerCase() === uuid.toLowerCase()
+          const exactMatch = filteredRecords.find(
+            (record) => String(record.key).toLowerCase() === uuid.toLowerCase()
           );
 
           if (exactMatch) {
@@ -863,12 +898,14 @@
 
       if (match) {
         const uuid = match[1];
-        console.log('Detected chat URL with UUID:', uuid);
-        
+        console.log("Detected chat URL with UUID:", uuid);
+
         // 尝试自动打开deepseek-chat数据库和history-message对象存储
         editorInstance.autoOpenDeepSeekChat(uuid);
       } else {
-        console.log('URL does not match chat pattern, showing general IndexedDB editor');
+        console.log(
+          "URL does not match chat pattern, showing general IndexedDB editor"
+        );
         // 对于其他URL，只显示通用的IndexedDB编辑器界面
       }
     });
